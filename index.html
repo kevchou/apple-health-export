@@ -30,13 +30,16 @@
             .attr("height", h)
             .attr("width", w);
 
+        // X scale for time seires graphs
         var x = d3.scaleTime()
             .range([padding, w - padding * 2]);
 
+        // X scale for discrete bands (bar plots)
         var x_bar = d3.scaleBand()
             .rangeRound([0, w])
             .padding(0.1);
 
+        // Y Scale
         var y = d3.scaleLinear()
             .range([h - padding, padding]);
 
@@ -61,6 +64,7 @@
             return data;
         }
 
+        // Line plot
         function refreshGraph(data) {
             x.domain(d3.extent(data, function (d) { return d.key; }));
             y.domain([0, d3.max(data, function (d) { return d.value; }) * 1.05]);
@@ -77,6 +81,7 @@
                 .attr("d", path(data));
         }
 
+        // Bar plot
         function refreshBarGraph(data) {
 
             x_bar.domain(data.map(function (d) { return d.key; }));
@@ -101,21 +106,22 @@
             console.log("Before group by:", data[0]);
 
             // Format to group date by
-            var f = "%H"
+            var f = "%Y-%m-%d"
 
             data = d3.nest()
                 .key(function (d) { return d3.timeFormat(f)(d.time) })
-                .rollup(function (v) { return d3.mean(v, function (d) { return d.steps; }) })
+                .rollup(function (v) { return d3.sum(v, function (d) { return d.steps; }) })
                 .entries(data);
 
-            // data.forEach(function (d) {
-            //     d.key = d3.timeParse(f)(d.key);
-            // });
+            data.forEach(function (d) {
+                d.key = d3.timeParse(f)(d.key);
+            });
 
             console.log("After group by:", data[0]);
             return data;
         }
 
+        // Read in CSV and draw graph
         d3.csv("hourly_steps.csv", function (data) {
             console.log("Imported data:", data[0])
             data = parseData(data);
@@ -124,7 +130,7 @@
                 return d3.ascending(x.key, y.key);
             })
 
-            refreshBarGraph(data);
+            refreshGraph(data);
         });
 
     </script>
