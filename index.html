@@ -1,0 +1,132 @@
+<meta charset="utf-8" />
+
+<head>
+    <style>
+        .line {
+            stroke: steelblue;
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .bar {
+            fill: steelblue;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script>
+
+
+        var parseTime = d3.timeParse("%Y-%m-%d %H:%M");
+
+        var w = 800;
+        var h = 600;
+        var padding = 50;
+
+        var svg = d3.select("body").append("svg")
+            .attr("height", h)
+            .attr("width", w);
+
+        var x = d3.scaleTime()
+            .range([padding, w - padding * 2]);
+
+        var x_bar = d3.scaleBand()
+            .rangeRound([0, w])
+            .padding(0.1);
+
+        var y = d3.scaleLinear()
+            .range([h - padding, padding]);
+
+        // Add the X Axis
+        var xaxis = svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(0," + (h - padding) + ")")
+            .call(d3.axisBottom(x));
+
+        // Add the Y Axis
+        var yaxis = svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(d3.axisLeft(y));
+
+        function parseData(data) {
+            data.forEach(function (d) {
+                d.time = parseTime(d.time);
+                d.steps = +d.steps;
+            });
+
+            return data;
+        }
+
+        function refreshGraph(data) {
+            x.domain(d3.extent(data, function (d) { return d.key; }));
+            y.domain([0, d3.max(data, function (d) { return d.value; }) * 1.05]);
+
+            xaxis.call(d3.axisBottom(x));
+            yaxis.call(d3.axisLeft(y));
+
+            var path = d3.line()
+                .x(function (d) { return x(d.key); })
+                .y(function (d) { return y(d.value); });
+
+            svg.append("path")
+                .attr("class", "line")
+                .attr("d", path(data));
+        }
+
+        function refreshBarGraph(data) {
+
+            x_bar.domain(data.map(function (d) { return d.key; }));
+            y.domain([0, d3.max(data, function (d) { return d.value; }) * 1.05]);
+
+            xaxis.call(d3.axisBottom(x_bar));
+            yaxis.call(d3.axisLeft(y));
+
+            svg.selectAll(".bar")
+                .data(data)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", function (d) { return x_bar(d.key); })
+                .attr("y", function (d) { return y(d.value) - padding; })
+                .attr("width", x_bar.bandwidth())
+                .attr("height", function (d) { return h - y(d.value); });
+        }
+
+
+        function groupData(data) {
+
+            console.log("Before group by:", data[0]);
+
+            // Format to group date by
+            var f = "%H"
+
+            data = d3.nest()
+                .key(function (d) { return d3.timeFormat(f)(d.time) })
+                .rollup(function (v) { return d3.mean(v, function (d) { return d.steps; }) })
+                .entries(data);
+
+            // data.forEach(function (d) {
+            //     d.key = d3.timeParse(f)(d.key);
+            // });
+
+            console.log("After group by:", data[0]);
+            return data;
+        }
+
+        d3.csv("hourly_steps.csv", function (data) {
+            console.log("Imported data:", data[0])
+            data = parseData(data);
+            data = groupData(data);
+            data.sort(function (x, y) {
+                return d3.ascending(x.key, y.key);
+            })
+
+            refreshBarGraph(data);
+        });
+
+    </script>
+
+</body>
