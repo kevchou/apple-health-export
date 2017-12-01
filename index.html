@@ -63,6 +63,21 @@
 
             return data;
         }
+        function moving_average(data, window) {
+            data = data.map(function (d, i) {
+                var avg = null;
+
+                if (i < (window/2) ) {
+                } else if (i >= (data.length - (window/2))) {
+                } else {
+                    var subset = data.slice(i - (window / 2), i + (window / 2));
+                    avg = d3.mean(subset, function (d) { return d.value });
+                }
+                return { key: d.key, value: avg }
+            });
+
+            return data.filter(function(d) { if (d.value != null) {return true;}});
+        }
 
         // Line plot
         function refreshGraph(data) {
@@ -82,27 +97,22 @@
 
             var movingAverageLine = d3.line()
                 .x(function (d, i) { return x(d.key); })
-                .y(function (d, i) {
-                    if (i == 0) {
-                        prevPrevVal = y(d.value);
-                        prevVal = y(d.value);
-                        curVal = y(d.value);
-                    } else if (i == 1) {
-                        prevPrevVal = prevVal;
-                        prevVal = curVal;
-                        curVal = (prevVal + y(d.value)) / 2.0;
-                    } else {
-                        prevPrevVal = prevVal;
-                        prevVal = curVal;
-                        curVal = (prevPrevVal + prevVal + y(d.value)) / 3.0;
-                    }
-                    return curVal;
-                })
-     
+                .y(function (d, i) { return y(d.value); });
+
             svg.append("path")
                 .attr("class", "line")
                 .style("stroke", "red")
-                .attr("d", movingAverageLine(data));
+                .attr("d", movingAverageLine(moving_average(data, 20)));
+
+            svg.append("path")
+                .attr("class", "line")
+                .style("stroke", "orange")
+                .attr("d", movingAverageLine(moving_average(data, 50)));
+
+            svg.append("path")
+                .attr("class", "line")
+                .style("stroke", "brown")
+                .attr("d", movingAverageLine(moving_average(data, 100)));
         }
 
         // Bar plot
