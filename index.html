@@ -79,6 +79,30 @@
             svg.append("path")
                 .attr("class", "line")
                 .attr("d", path(data));
+
+            var movingAverageLine = d3.line()
+                .x(function (d, i) { return x(d.key); })
+                .y(function (d, i) {
+                    if (i == 0) {
+                        prevPrevVal = y(d.value);
+                        prevVal = y(d.value);
+                        curVal = y(d.value);
+                    } else if (i == 1) {
+                        prevPrevVal = prevVal;
+                        prevVal = curVal;
+                        curVal = (prevVal + y(d.value)) / 2.0;
+                    } else {
+                        prevPrevVal = prevVal;
+                        prevVal = curVal;
+                        curVal = (prevPrevVal + prevVal + y(d.value)) / 3.0;
+                    }
+                    return curVal;
+                })
+     
+            svg.append("path")
+                .attr("class", "line")
+                .style("stroke", "red")
+                .attr("d", movingAverageLine(data));
         }
 
         // Bar plot
